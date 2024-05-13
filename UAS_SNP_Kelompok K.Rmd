@@ -1,0 +1,279 @@
+---
+title: "UAS_SNP_Kelompok K"
+author: "KELOMPOK K"
+date: "2023-12-06"
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+---
+
+
+# Memanggil Library
+```{r, warning=FALSE}
+library(readxl)
+library(DescTools)
+library(nonpar)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+```
+
+# Preprocessing Data
+```{r, warning=FALSE}
+setwd("C:/Users/AURA/Music/OneDrive/Pictures/Kuliah/Data Sekunder")
+
+data=read_excel("hidup_provinsi.xlsx")
+data
+```
+
+## Uji Normalitas
+```{r, warning=FALSE}
+uji_normalitas_shapiro <- function(data, alpha = 0.05) {
+  # Mengambil hanya variabel numerik dari data
+  numeric_vars <- Filter(is.numeric, data)
+  
+  # Inisialisasi vektor untuk menyimpan hasil uji
+  hasil_uji <- vector("list", length = ncol(numeric_vars))
+  
+  # Inisialisasi vektor untuk menyimpan keterangan distribusi
+  keterangan_distribusi <- character(length = ncol(numeric_vars))
+  
+  # Melakukan uji normalitas Shapiro-Wilk untuk setiap variabel numerik
+  for (i in seq_along(numeric_vars)) {
+    var <- numeric_vars[[i]]
+    shapiro_test <- shapiro.test(var)
+    hasil_uji[[i]] <- shapiro_test
+    
+    # Menyimpan keterangan distribusi
+    if (shapiro_test$p.value < alpha) {
+      keterangan_distribusi[i] <- "Distribusi Tidak Normal"
+    } else {
+      keterangan_distribusi[i] <- "Distribusi Normal"
+    }
+  }
+  
+  # Menyusun hasil uji dan keterangan distribusi menjadi data frame
+  hasil_df <- data.frame(
+    Variable = names(numeric_vars),
+    Shapiro_P_Value = sapply(hasil_uji, function(x) x$p.value),
+    Distribution_Status = keterangan_distribusi
+  )
+  
+  return(hasil_df)
+}
+
+```
+
+## Uji Shapiro-Wilk
+```{r, warning=FALSE}
+uji_normalitas_shapiro(data)
+```
+
+
+## Summary Data
+```{r, warning=FALSE}
+summary(data)
+```
+
+## Pengambilan Data Numeric
+```{r, warning=FALSE}
+datanumeric <- data[, -which(names(data) == "Provinsi")]
+datanumeric
+```
+## Perhitungan Statistika Deskriptif
+```{r, warning=FALSE}
+statistika_deskriptif <- function(data) {
+# Mendapatkan hanya kolom-kolom numerik
+kolom_numerik <- data[, sapply(data, is.numeric)]
+# Inisialisasi vektor kosong untuk menyimpan hasil perhitungan
+variables <- names(kolom_numerik)
+means <- medians <- q1s <- q3s <- variances <- sds <- ranges <- sums <- mins <- maxs <- numeric(length(variables))
+# Loop untuk setiap variabel numerik
+for (i in seq_along(variables)) {
+  variable <- variables[i]
+  values <- kolom_numerik[[variable]]
+# Hitung statistika deskriptif
+  means[i] <- mean(values)
+  medians[i] <- median(values)
+  q1s[i] <- quantile(values, 0.25)
+  q3s[i] <- quantile(values, 0.75)
+  variances[i] <- var(values)
+  sds[i] <- sd(values)
+  ranges[i] <- max(values) - min(values)
+  sums[i] <- sum(values)
+  mins[i] <- min(values)
+  maxs[i] <- max(values)
+}
+
+hasil <- data.frame(Variabel = variables, Mean = means, Median = medians, Q1 = q1s, Q3 = q3s, Variance = variances, SD = sds, Range = ranges, Sum = sums, Min = mins, Max = maxs, stringsAsFactors = FALSE)
+
+return(hasil)
+}
+```
+
+## Nilai Statistika Deskriptif
+```{r, warning=FALSE}
+statistika_deskriptif(data)
+```
+
+# Visualisasi Data
+## Pengecekan Outlier
+```{r, warning=FALSE}
+par(mfrow=c(1,4))
+for(i in 1:4) {boxplot(datanumeric[,i], main=names(datanumeric)[i])}
+```
+
+## Pengecekan Distribusi Data
+```{r, warning=FALSE}
+variabel_numerik <- c()
+# Loop for untuk menelusuri kolom-kolom di dbdjabar
+for (col_name in names(datanumeric)) {
+if (is.numeric(datanumeric[[col_name]])) {
+variabel_numerik <- c(variabel_numerik, col_name)
+}
+}
+# Menampilkan Hasil
+print(variabel_numerik)
+```
+
+```{r, warning=FALSE}
+# Inisialisasi plot
+par(mfrow = c(2, 2), mar = c(2, 2, 2, 2))
+# Loop for untuk membuat histogram untuk setiap variabel numerik
+for (i in 1:length(variabel_numerik)) {
+var <- variabel_numerik[i]
+hist_data <- datanumeric[[var]]
+# Membuat Histogram
+hist(hist_data, main = paste("Histogram", var), col = "#967A51", xlab = var, ylab = "Frequency")
+}
+```
+
+# Uji K-Sampel Independen
+## Uji Kruskal-Wallis
+```{r, warning=FALSE}
+#Uji Kruskal-Wallis
+kruskal.test(datanumeric)
+```
+
+## Uji Jonckheere-Terpstra
+```{r, warning=FALSE}
+#Uji Johnkheere-Terpstra
+JonckheereTerpstraTest(datanumeric)
+```
+
+# Uji K-Sampel Dependen
+## Uji Friedman
+```{r, warning=FALSE}
+#Uji Friedman
+friedman.test(data.matrix(datanumeric))
+```
+
+## Uji Perbandingan Ganda
+```{r, warning=FALSE}
+#Uji Perbandingan Ganda
+tabel_z = 0.05/(4*(3))
+
+z = 2.64
+print(paste("Nilai Z adalah", z))
+rumus = z*(sqrt((34*4*5)/6))
+print(paste("Hasil Perhitungan Uji Perbandingan Ganda", rumus))
+
+sum_r_2020 <- 34
+sum_r_2021 <- 68
+sum_r_2022 <- 102
+sum_r_2023 <- 136
+sprintf("Nilai sum ranking dari tahun 2020 adalah %d, tahun 2021 adalah %d, tahun 2022 adalah %d, dan tahun 2023 adalah %d", sum_r_2020, sum_r_2021, sum_r_2022, sum_r_2023)
+
+if (abs(sum_r_2020-sum_r_2021)>rumus) {
+  print("Nilai UHH di Provinsi-Provinsi Indonesia Tahun 2020 dan Tahun 2021 memberikan perbedaan")
+} else {
+  print("Nilai UHH di Provinsi-Provinsi Indonesia Tahun 2020 dan Tahun 2021 tidak memberikan perbedaan")
+}
+
+if (abs(sum_r_2020-sum_r_2022)>rumus) {
+  print("Nilai UHH di Provinsi-Provinsi Indonesia Tahun 2020 dan Tahun 2022 memberikan perbedaan")
+} else {
+  print("Nilai UHH di Provinsi-Provinsi Indonesia Tahun 2020 dan Tahun 2022 tidak memberikan perbedaan")
+}
+
+if (abs(sum_r_2020-sum_r_2023)>rumus) {
+  print("Nilai UHH di Provinsi-Provinsi Indonesia Tahun 2020 dan Tahun 2023 memberikan perbedaan")
+} else {
+  print("Nilai UHH di Provinsi-Provinsi Indonesia Tahun 2020 dan Tahun 2023 tidak memberikan perbedaan")
+}
+
+
+if (abs(sum_r_2021-sum_r_2022)>rumus) {
+  print("Nilai UHH di Provinsi-Provinsi Indonesia Tahun 2021 dan Tahun 2022 memberikan perbedaan")
+} else {
+  print("Nilai UHH di Provinsi-Provinsi Indonesia Tahun 2021 dan Tahun 2022 tidak memberikan perbedaan")
+}
+
+if (abs(sum_r_2021-sum_r_2023)>rumus) {
+  print("Nilai UHH di Provinsi-Provinsi Indonesia Tahun 2021 dan Tahun 2023 memberikan perbedaan")
+} else {
+  print("Nilai UHH di Provinsi-Provinsi Indonesia Tahun 2021 dan Tahun 2023 tidak memberikan perbedaan")
+}
+
+
+if (abs(sum_r_2022-sum_r_2023)>rumus) {
+  print("Nilai UHH di Provinsi-Provinsi Indonesia Tahun 2022 dan Tahun 2023 memberikan perbedaan")
+} else {
+  print("Nilai UHH di Provinsi-Provinsi Indonesia Tahun 2022 dan Tahun 2023 tidak memberikan perbedaan")
+}
+```
+
+## Uji Page
+```{r, warning=FALSE}
+#Uji Page
+uji_page <- as.matrix(data.frame(datanumeric))
+PageTest(uji_page)
+```
+
+
+# Uji Asosiatif
+## Uji Korelasi Spearman
+### Fungsi Uji Spearman
+```{r, warning=FALSE}
+uji_spearman <- function(data, variabel1, variabel2, alpha = 0.05) {
+# Mengambil kolom-kolom yang sesuai dengan variabel yang diberikan
+  data_subset <- data[, c(variabel1, variabel2)]
+# Melakukan uji Spearman
+  hasil_uji <- cor.test(data_subset[[variabel1]], data_subset[[variabel2]], method = "spearman")
+# Menyusun hasil ke dalam data frame
+  hasil_df <- data.frame(
+    Variabel1 = variabel1,
+    Variabel2 = variabel2,
+    rho = hasil_uji$estimate,
+    P_value = hasil_uji$p.value,
+    alpha = alpha,
+    Kesimpulan = ifelse(hasil_uji$p.value < alpha, "Tolak H0", "Gagal Tolak H0")
+)
+return(hasil_df)
+}
+```
+
+### Nilai Uji Spearman
+```{r, warning=FALSE}
+hasil_uji_2020_2021 <- uji_spearman(data, "2020", "2021")
+hasil_uji_2020_2021
+hasil_uji_2020_2022 <- uji_spearman(data, "2020", "2022")
+hasil_uji_2020_2022
+hasil_uji_2020_2023 <- uji_spearman(data, "2020", "2023")
+hasil_uji_2020_2023
+hasil_uji_2021_2022 <- uji_spearman(data, "2021", "2022")
+hasil_uji_2021_2022
+hasil_uji_2021_2023 <- uji_spearman(data, "2021", "2023")
+hasil_uji_2021_2023
+hasil_uji_2022_2023 <- uji_spearman(data, "2022", "2023")
+hasil_uji_2022_2023
+```
+
+## Nilai Seluruh Uji Spearman beserta Kesimpulannya
+```{r, warning=FALSE}
+hasil_akhir_spearman <- rbind(hasil_uji_2020_2021, hasil_uji_2020_2022, hasil_uji_2020_2023,
+hasil_uji_2021_2022, hasil_uji_2021_2023, hasil_uji_2022_2023)
+hasil_akhir_spearman
+```
+
